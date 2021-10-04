@@ -8,7 +8,7 @@ import time
 from multiprocessing import Process
 
 def healer(baseAddress, valores):
-    keystroke = autopot()
+    keystroke = bot()
     rwm = ReadWriteMemory()
     process = rwm.get_process_by_name("RealeraDX9.exe")
     process.open()
@@ -53,7 +53,7 @@ def healer(baseAddress, valores):
                 continue
 
 def mana_trainer(baseAddress, valores):
-    keystroke = autopot()
+    keystroke = bot()
     rwm = ReadWriteMemory()
     process = rwm.get_process_by_name("RealeraDX9.exe")
     process.open()
@@ -83,7 +83,7 @@ def mana_trainer(baseAddress, valores):
                 continue
         time.sleep(int(valores['sleep']))
 
-class autopot:
+class bot:
     def __init__(self):
         self.game = "RealeraDX9.exe"
         self.keyboard = Controller()
@@ -318,5 +318,5 @@ class autopot:
                     continue
 
 if __name__ == "__main__":
-    start = autopot()
+    start = bot()
     start.bot_main()
