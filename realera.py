@@ -5,6 +5,83 @@ import psutil
 import win32api, win32process
 import sys
 import time
+from multiprocessing import Process
+
+def healer(baseAddress, valores):
+    keystroke = autopot()
+    rwm = ReadWriteMemory()
+    process = rwm.get_process_by_name("RealeraDX9.exe")
+    process.open()
+    while True:
+        if valores['hp'] == True:
+            try:
+                key = valores['hp_key']
+                hp = process.get_pointer(baseAddress, offsets=[0x3B0])
+                hp = process.readDouble(hp)
+                heal_hp = valores['hp_value']
+                mp = process.get_pointer(baseAddress, offsets=[0x3E8])
+                mp = process.readDouble(mp)
+                heal_mp = valores['hpmp_value']
+                if int(hp) < int(heal_hp) and int(mp) > int(heal_mp):
+                    keystroke.keystroke(key)
+                    time.sleep(0.5)
+            except:
+                continue
+        if valores['lhp'] == True:
+            try:
+                key = valores['lhp_key']
+                hp = process.get_pointer(baseAddress, offsets=[0x3B0])
+                hp = process.readDouble(hp)
+                heal_hp = valores['lhp_value']
+                mp = process.get_pointer(baseAddress, offsets=[0x3E8])
+                mp = process.readDouble(mp)
+                heal_mp = valores['lhpmp_value']
+                if int(hp) < int(heal_hp) and int(mp) > int(heal_mp):
+                    keystroke.keystroke(key)
+                    time.sleep(0.5)
+            except:
+                continue
+        if valores['mp'] == True:
+            try:
+                key = valores['mp_key']
+                mana = process.get_pointer(baseAddress, offsets=[0x3E8])
+                mana = process.readDouble(mana)
+                heal_mana = valores['mp_value']
+                if int(mana) < int(heal_mana):
+                    keystroke.keystroke()
+            except:
+                continue
+
+def mana_trainer(baseAddress, valores):
+    keystroke = autopot()
+    rwm = ReadWriteMemory()
+    process = rwm.get_process_by_name("RealeraDX9.exe")
+    process.open()
+    while True:
+        if valores['fmt'] == True:
+            try:
+                key = valores['fspell_key']
+                mp = process.get_pointer(baseAddress, offsets=[0x3E8])
+                mp = process.readDouble(mp)
+                mt_mp = valores['fspell_value']
+                if int(mp) > int(mt_mp):
+                    keystroke.keystroke(key)
+                    time.sleep(0.5)
+            except Exception as e:
+                print(e)
+                continue
+        if valores['mt'] == True:
+            try:
+                key = valores['spell_key']
+                mp = process.get_pointer(baseAddress, offsets=[0x3E8])
+                mp = process.readDouble(mp)
+                mt_mp = valores['spell_value']
+                if int(mp) > int(mt_mp):
+                    keystroke.keystroke(key)
+                    time.sleep(0.5)
+            except:
+                continue
+        time.sleep(int(valores['sleep']))
 
 class autopot:
     def __init__(self):
@@ -66,7 +143,9 @@ class autopot:
             title='Erro ao Iniciar', button_color='#fd6468', text_color='white')
             sys.exit()
     
-    def keystroke(self):
+    def keystroke(self, key=""):
+        if key != "":
+            self.key = key
         if self.key == 'F1':
             self.key = Key.f1
         elif self.key == 'F2':
@@ -123,11 +202,13 @@ class autopot:
             if eventos == "Healing":
                 self.healing()
             if eventos == "Cavebot":
-                self.cavebot()
+                sg.popup("In Development...")
+            if eventos == "Mana Trainer":
+                self.mana_training()
 
     def cavebot(self):
         sg.theme('Reddit')
-        layout_hp = [
+        layout_way = [
             [sg.Text('Waypoints',font=('Helvetica, 14'), justification='c', background_color='#272424', text_color='white')]
         ]
         layout_buttons = [
@@ -135,42 +216,8 @@ class autopot:
         ]
         layout = [
             [sg.Canvas(background_color='#272424', size=(400, 10), pad=None)],
-            [sg.Column(layout=layout_hp, justification='c', element_justification='c', background_color='#272424')],
+            [sg.Column(layout=layout_way, justification='c', element_justification='c', background_color='#272424')],
             [sg.Canvas(background_color='#272424', size=(400, 3), pad=None)],
-            [sg.Checkbox('HP', default=False,key='hp', background_color='#272424', text_color='white'),
-            sg.Combo(['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'],default_value='',key='hp_key',readonly=True, background_color='#272424', text_color='white'),
-            sg.Text("HP to Heal: ", background_color='#272424', text_color='white'),sg.Input(key='hp_value', background_color='#272424', text_color='white'), ],
-            [sg.Checkbox('MP', default=False,key='mp', background_color='#272424', text_color='white'),
-            sg.Combo(['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'],default_value='',key='mp_key',readonly=True, background_color='#272424', text_color='white'),
-            sg.Text("MP to Heal: ", background_color='#272424', text_color='white'),sg.Input(key='mp_value', background_color='#272424', text_color='white'), ],
-            [sg.Canvas(background_color='#272424', size=(400, 20), pad=None)],
-            [sg.Column(layout=layout_buttons, justification='c', element_justification='c', background_color='#272424')]
-        ]
-        janela = sg.Window('RoseTibiaBot - Realera', layout, size=(400,300),
-        background_color='#272424', finalize=True, grab_anywhere=True, resizable=False)
-        init = 0
-        while True:
-            eventos, valores = janela.read(timeout=100)
-            
-
-    def healing(self):
-        sg.theme('Reddit')
-        layout_hp = [
-            [sg.Text('Auto Pot',font=('Helvetica, 14'), justification='c', background_color='#272424', text_color='white')]
-        ]
-        layout_buttons = [
-            [sg.Button('Iniciar', button_color='#fd6468'), sg.Button('Pausar', button_color='#fd6468')]
-        ]
-        layout = [
-            [sg.Canvas(background_color='#272424', size=(400, 10), pad=None)],
-            [sg.Column(layout=layout_hp, justification='c', element_justification='c', background_color='#272424')],
-            [sg.Canvas(background_color='#272424', size=(400, 3), pad=None)],
-            [sg.Checkbox('HP', default=False,key='hp', background_color='#272424', text_color='white'),
-            sg.Combo(['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'],default_value='',key='hp_key',readonly=True, background_color='#272424', text_color='white'),
-            sg.Text("HP to Heal: ", background_color='#272424', text_color='white'),sg.Input(key='hp_value', background_color='#272424', text_color='white'), ],
-            [sg.Checkbox('MP', default=False,key='mp', background_color='#272424', text_color='white'),
-            sg.Combo(['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'],default_value='',key='mp_key',readonly=True, background_color='#272424', text_color='white'),
-            sg.Text("MP to Heal: ", background_color='#272424', text_color='white'),sg.Input(key='mp_value', background_color='#272424', text_color='white'), ],
             [sg.Canvas(background_color='#272424', size=(400, 20), pad=None)],
             [sg.Column(layout=layout_buttons, justification='c', element_justification='c', background_color='#272424')]
         ]
@@ -181,59 +228,94 @@ class autopot:
             eventos, valores = janela.read(timeout=100)
             if eventos ==  sg.WINDOW_CLOSED:
                 break
+            
+    def healing(self):
+        sg.theme('Reddit')
+        layout_hp = [
+            [sg.Text('Healing',font=('Helvetica, 14'), justification='c', background_color='#272424', text_color='white')]
+        ]
+        layout_buttons = [
+            [sg.Button('Iniciar', button_color='#fd6468'), sg.Button('Pausar', button_color='#fd6468')]
+        ]
+        layout = [
+            [sg.Canvas(background_color='#272424', size=(400, 10), pad=None)],
+            [sg.Column(layout=layout_hp, justification='c', element_justification='c', background_color='#272424')],
+            [sg.Canvas(background_color='#272424', size=(400, 3), pad=None)],
+            [sg.Checkbox('Light Healing', default=False,key='lhp', background_color='#272424', text_color='white'),
+            sg.Combo(['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'],default_value='',key='lhp_key',readonly=True, background_color='#272424', text_color='white'),
+            sg.Text("HP: ", background_color='#272424', text_color='white'),sg.Input(key='lhp_value', background_color='#272424', text_color='white', size=(7,20)),
+            sg.Text("MP: ", background_color='#272424', text_color='white'),sg.Input(key='lhpmp_value', background_color='#272424', text_color='white', size=(7,20)), ],
+            [sg.Checkbox('Heavy Healing', default=False,key='hp', background_color='#272424', text_color='white'),
+            sg.Combo(['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'],default_value='',key='hp_key',readonly=True, background_color='#272424', text_color='white'),
+            sg.Text("HP: ", background_color='#272424', text_color='white'),sg.Input(key='hp_value', background_color='#272424', text_color='white', size=(7,20)),
+            sg.Text("MP: ", background_color='#272424', text_color='white'),sg.Input(key='hpmp_value', background_color='#272424', text_color='white', size=(7,20)), ],
+            [sg.Checkbox('Mana Healing', default=False,key='mp', background_color='#272424', text_color='white'),
+            sg.Combo(['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'],default_value='',key='mp_key',readonly=True, background_color='#272424', text_color='white'),
+            sg.Text("MP: ", background_color='#272424', text_color='white'),sg.Input(key='mp_value', background_color='#272424', text_color='white', size=(7,20)), ],
+            [sg.Canvas(background_color='#272424', size=(400, 20), pad=None)],
+            [sg.Column(layout=layout_buttons, justification='c', element_justification='c', background_color='#272424')]
+        ]
+        janela = sg.Window(f'RoseTibiaBot - Realera -- logged as {self.char_name}', layout, size=(400,250),
+        background_color='#272424', finalize=True, grab_anywhere=True, resizable=False)
+        while True:
+            eventos, valores = janela.read(timeout=100)
+            if eventos ==  sg.WINDOW_CLOSED:
+                break
             if eventos == 'Pausar':
-                init = 0
-            if init == 1:
-                eventos = "Iniciar"
+                try:
+                    self.heal.terminate()
+                except Exception as e:
+                    print(e)
+                    continue
             if eventos == "Iniciar":
-                ##self.healer(init, valores)
-                init = 1
-                if valores['hp'] == True:
-                    try:
-                        self.key = valores['hp_key']
-                        hp = self.process.get_pointer(self.baseAddress, offsets=[0x3B0])
-                        hp = self.process.readDouble(hp)
-                        heal_hp = valores['hp_value']
-                        if int(hp) < int(heal_hp):
-                            self.keystroke()
-                            time.sleep(0.5)
-                    except:
-                        continue
-                if valores['mp'] == True:
-                    try:
-                        self.key = valores['mp_key']
-                        mana = self.process.get_pointer(self.baseAddress, offsets=[0x3E8])
-                        mana = self.process.readDouble(mana)
-                        heal_mana = valores['mp_value']
-                        if int(mana) < int(heal_mana):
-                            self.keystroke()
-                    except:
-                        continue
+                try:
+                    self.heal = Process(target=healer, args=(self.baseAddress, valores,))
+                    self.heal.start()
+                except Exception as e:
+                    print(e)
+                    continue
 
-    def healer(self, init, valores):
-        if init == 1:
-            while True:
-                if valores['hp'] == True:
-                    try:
-                        self.key = valores['hp_key']
-                        hp = self.process.get_pointer(self.baseAddress, offsets=[0x3B0])
-                        hp = self.process.readDouble(hp)
-                        heal_hp = valores['hp_value']
-                        if int(hp) < int(heal_hp):
-                            self.keystroke()
-                            time.sleep(0.5)
-                    except:
-                        continue
-                if valores['mp'] == True:
-                    try:
-                        self.key = valores['mp_key']
-                        mana = self.process.get_pointer(self.baseAddress, offsets=[0x3E8])
-                        mana = self.process.readDouble(mana)
-                        heal_mana = valores['mp_value']
-                        if int(mana) < int(heal_mana):
-                            self.keystroke()
-                    except:
-                        continue
+    def mana_training(self):
+        sg.theme('Reddit')
+        layout_hp = [
+            [sg.Text('Mana Trainer',font=('Helvetica, 14'), justification='c', background_color='#272424', text_color='white')]
+        ]
+        layout_buttons = [
+            [sg.Button('Iniciar', button_color='#fd6468'), sg.Button('Pausar', button_color='#fd6468')]
+        ]
+        layout = [
+            [sg.Canvas(background_color='#272424', size=(400, 10), pad=None)],
+            [sg.Column(layout=layout_hp, justification='c', element_justification='c', background_color='#272424')],
+            [sg.Canvas(background_color='#272424', size=(400, 3), pad=None)],
+            [sg.Checkbox('First Spell', default=False,key='fmt', background_color='#272424', text_color='white'),
+            sg.Combo(['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'],default_value='',key='fspell_key',readonly=True, background_color='#272424', text_color='white'),
+            sg.Text("MP: ", background_color='#272424', text_color='white'),sg.Input(key='fspell_value', background_color='#272424', text_color='white', size=(7,20)), ],
+            [sg.Checkbox('Second Spell', default=False,key='mt', background_color='#272424', text_color='white'),
+            sg.Combo(['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'],default_value='',key='spell_key',readonly=True, background_color='#272424', text_color='white'),
+            sg.Text("MP: ", background_color='#272424', text_color='white'),sg.Input(key='spell_value', background_color='#272424', text_color='white', size=(7,20)), ],
+            [sg.Text("Sleep: ", background_color='#272424', text_color='white'),sg.Input(key='sleep', background_color='#272424', text_color='white', size=(7,20)), ],
+            [sg.Canvas(background_color='#272424', size=(400, 20), pad=None)],
+            [sg.Column(layout=layout_buttons, justification='c', element_justification='c', background_color='#272424')]
+        ]
+        janela = sg.Window(f'RoseTibiaBot - Realera -- logged as {self.char_name}', layout, size=(400,250),
+        background_color='#272424', finalize=True, grab_anywhere=True, resizable=False)
+        while True:
+            eventos, valores = janela.read(timeout=100)
+            if eventos ==  sg.WINDOW_CLOSED:
+                break
+            if eventos == 'Pausar':
+                try:
+                    self.mt.terminate()
+                except Exception as e:
+                    print(e)
+                    continue
+            if eventos == "Iniciar":
+                try:
+                    self.mt = Process(target=mana_trainer, args=(self.baseAddress, valores,))
+                    self.mt.start()
+                except Exception as e:
+                    print(e)
+                    continue
 
 if __name__ == "__main__":
     start = autopot()
