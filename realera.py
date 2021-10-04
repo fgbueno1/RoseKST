@@ -1,8 +1,8 @@
 from ReadWriteMemory import ReadWriteMemory
 from PySimpleGUI import PySimpleGUI as sg
-from pynput.keyboard import Key, Controller
 import psutil
 import win32api, win32process
+import win32gui, win32ui, win32con
 import sys
 import time
 from multiprocessing import Process
@@ -86,7 +86,6 @@ def mana_trainer(baseAddress, valores):
 class bot:
     def __init__(self):
         self.game = "RealeraDX9.exe"
-        self.keyboard = Controller()
         self.rwm = ReadWriteMemory()
         try:
             self.process = self.rwm.get_process_by_name(self.game)
@@ -103,6 +102,10 @@ class bot:
             processHandle.close()
             base_addr = modules[0]
             self.baseAddress = base_addr + 0x004939F8
+            char_name = self.process.get_pointer(self.baseAddress, offsets=[0x20])
+            self.char_name = self.process.readString(char_name, 30)
+            self.window_name = f"Realera Client ({self.char_name})"
+            self.hwnd = win32gui.FindWindow(None, self.window_name)
             ## POS X = 0x00A7403C
             '''pos_x = self.process.get_pointer(0x00A7403C)
             pos_x = self.process.read(pos_x)
@@ -147,36 +150,34 @@ class bot:
         if key != "":
             self.key = key
         if self.key == 'F1':
-            self.key = Key.f1
+            self.key = 0x70
         elif self.key == 'F2':
-            self.key = Key.f2
+            self.key = 0x71
         elif self.key == 'F3':
-            self.key = Key.f3
+            self.key = 0x72
         elif self.key == 'F4':
-            self.key = Key.f4
+            self.key = 0x73
         elif self.key == 'F5':
-            self.key = Key.f5
+            self.key = 0x74
         elif self.key == 'F6':
-            self.key = Key.f6
+            self.key = 0x75
         elif self.key == 'F7':
-            self.key = Key.f7
+            self.key = 0x76
         elif self.key == 'F8':
-            self.key = Key.f8
+            self.key = 0x77
         elif self.key == 'F9':
-            self.key = Key.f9
+            self.key = 0x78
         elif self.key == 'F10':
-            self.key = Key.f10
+            self.key = 0x79
         elif self.key == 'F11':
-            self.key = Key.f11
+            self.key = 0x7A
         elif self.key == 'F12':
-            self.key = Key.f12
-        self.keyboard.press(self.key)
-        self.keyboard.release(self.key)
+            self.key = 0x7B
+        win32api.SendMessage(self.hwnd, win32con.WM_KEYDOWN, self.key, 0)
+        win32api.SendMessage(self.hwnd, win32con.WM_KEYUP, self.key, 0)
 
     def bot_main(self):
         sg.theme('Reddit')
-        char_name = self.process.get_pointer(self.baseAddress, offsets=[0x20])
-        self.char_name = self.process.readString(char_name, 30)
         layout_title = [
             [sg.Text(f'RoseTibiaBot-Realera -- logged as {self.char_name}',font=('Helvetica, 10'), justification='c', background_color='#272424', text_color='white')]
         ]
@@ -194,9 +195,15 @@ class bot:
         background_color='#272424', finalize=True, grab_anywhere=True, resizable=False)
         while True:
             eventos, valores = janela.read(timeout=100)
-            if eventos == sg.WINDOW_CLOSED:
-                break
-            if eventos == "Exit":
+            if eventos == sg.WINDOW_CLOSED or eventos == "Exit":
+                try:
+                    self.heal.terminate()
+                except:
+                    pass
+                try:
+                    self.mt.terminate()
+                except:
+                    pass
                 janela.close()
                 break
             if eventos == "Healing":
@@ -257,6 +264,7 @@ class bot:
         ]
         janela = sg.Window(f'RoseTibiaBot - Realera -- logged as {self.char_name}', layout, size=(400,250),
         background_color='#272424', finalize=True, grab_anywhere=True, resizable=False)
+        self.healing = 0
         while True:
             eventos, valores = janela.read(timeout=100)
             if eventos ==  sg.WINDOW_CLOSED:
@@ -264,13 +272,18 @@ class bot:
             if eventos == 'Pausar':
                 try:
                     self.heal.terminate()
+                    self.healing = 0
                 except Exception as e:
                     print(e)
                     continue
             if eventos == "Iniciar":
                 try:
-                    self.heal = Process(target=healer, args=(self.baseAddress, valores,))
-                    self.heal.start()
+                    if self.healing == 1:
+                        sg.popup("Healing já em execução, primeiro pause para poder alterar")
+                    else:    
+                        self.healing = 1
+                        self.heal = Process(target=healer, args=(self.baseAddress, valores,))
+                        self.heal.start()
                 except Exception as e:
                     print(e)
                     continue
@@ -299,20 +312,26 @@ class bot:
         ]
         janela = sg.Window(f'RoseTibiaBot - Realera -- logged as {self.char_name}', layout, size=(400,250),
         background_color='#272424', finalize=True, grab_anywhere=True, resizable=False)
+        self.manat = 0
         while True:
             eventos, valores = janela.read(timeout=100)
             if eventos ==  sg.WINDOW_CLOSED:
                 break
             if eventos == 'Pausar':
                 try:
+                    self.manat = 0
                     self.mt.terminate()
                 except Exception as e:
                     print(e)
                     continue
             if eventos == "Iniciar":
                 try:
-                    self.mt = Process(target=mana_trainer, args=(self.baseAddress, valores,))
-                    self.mt.start()
+                    if self.manat == 1:
+                        sg.popup("Mata Training já em execução, primeiro pause para poder alterar")
+                    else:
+                        self.manat = 1
+                        self.mt = Process(target=mana_trainer, args=(self.baseAddress, valores,))
+                        self.mt.start()
                 except Exception as e:
                     print(e)
                     continue
