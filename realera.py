@@ -7,10 +7,37 @@ import sys
 import time
 import multiprocessing
 
-def healer(baseAddress, valores):
-    keystroke = bot()
+def keystroke(key, hwnd):
+    if key == 'F1':
+        key = 0x70
+    elif key == 'F2':
+        key = 0x71
+    elif key == 'F3':
+        key = 0x72
+    elif key == 'F4':
+        key = 0x73
+    elif key == 'F5':
+        key = 0x74
+    elif key == 'F6':
+        key = 0x75
+    elif key == 'F7':
+        key = 0x76
+    elif key == 'F8':
+        key = 0x77
+    elif key == 'F9':
+        key = 0x78
+    elif key == 'F10':
+        key = 0x79
+    elif key == 'F11':
+        key = 0x7A
+    elif key == 'F12':
+        key = 0x7B
+    win32api.SendMessage(hwnd, win32con.WM_KEYDOWN, key, 0)
+    win32api.SendMessage(hwnd, win32con.WM_KEYUP, key, 0)
+
+def healer(baseAddress, valores, pid, hwnd):
     rwm = ReadWriteMemory()
-    process = rwm.get_process_by_name("RealeraDX9.exe")
+    process = rwm.get_process_by_id(pid)
     process.open()
     while True:
         if valores['hp'] == True:
@@ -23,7 +50,7 @@ def healer(baseAddress, valores):
                 mp = process.readDouble(mp)
                 heal_mp = valores['hpmp_value']
                 if int(hp) < int(heal_hp) and int(mp) > int(heal_mp):
-                    keystroke.keystroke(key)
+                    keystroke(key, hwnd)
                     time.sleep(0.5)
             except:
                 continue
@@ -37,7 +64,7 @@ def healer(baseAddress, valores):
                 mp = process.readDouble(mp)
                 heal_mp = valores['lhpmp_value']
                 if int(hp) < int(heal_hp) and int(mp) > int(heal_mp):
-                    keystroke.keystroke(key)
+                    keystroke(key, hwnd)
                     time.sleep(0.5)
             except:
                 continue
@@ -48,14 +75,13 @@ def healer(baseAddress, valores):
                 mana = process.readDouble(mana)
                 heal_mana = valores['mp_value']
                 if int(mana) < int(heal_mana):
-                    keystroke.keystroke()
+                    keystroke(key, hwnd)
             except:
                 continue
 
-def mana_trainer(baseAddress, valores):
-    keystroke = bot()
+def mana_trainer(baseAddress, valores, pid, hwnd):
     rwm = ReadWriteMemory()
-    process = rwm.get_process_by_name("RealeraDX9.exe")
+    process = rwm.get_process_by_id(pid)
     process.open()
     while True:
         if valores['fmt'] == True:
@@ -65,7 +91,7 @@ def mana_trainer(baseAddress, valores):
                 mp = process.readDouble(mp)
                 mt_mp = valores['fspell_value']
                 if int(mp) > int(mt_mp):
-                    keystroke.keystroke(key)
+                    keystroke(key, hwnd)
                     time.sleep(0.5)
             except Exception as e:
                 print(e)
@@ -77,7 +103,7 @@ def mana_trainer(baseAddress, valores):
                 mp = process.readDouble(mp)
                 mt_mp = valores['spell_value']
                 if int(mp) > int(mt_mp):
-                    keystroke.keystroke(key)
+                    keystroke(key,hwnd)
                     time.sleep(0.5)
             except:
                 continue
@@ -121,21 +147,22 @@ def record(baseAddress):
         for i in range(walk):
             self.keystroke() '''
 
+
 class bot:
-    def __init__(self):
+    def __init__(self, win_name):
         self.game = "RealeraDX9.exe"
         self.rwm = ReadWriteMemory()
         try:
-            self.process = self.rwm.get_process_by_name(self.game)
+            #self.char_name_got = "Rose Knight"
+            #self.process = self.rwm.get_process_by_id(self.game)
+            #self.process.open()
+            self.window_name_got = win_name
+            self.hwnd = win32gui.FindWindow(None, self.window_name_got)
+            thread_id, self.my_pid = win32process.GetWindowThreadProcessId(self.hwnd)
+            self.process = self.rwm.get_process_by_id(self.my_pid)
             self.process.open()
-            my_pid = None
-            pids = psutil.pids()
-            for pid in pids:
-                ps = psutil.Process(pid)
-                if self.game in ps.name():
-                    my_pid = ps.pid
             PROCESS_ALL_ACCESS = 0x1F0FFF
-            processHandle = win32api.OpenProcess(PROCESS_ALL_ACCESS, False, my_pid)
+            processHandle = win32api.OpenProcess(PROCESS_ALL_ACCESS, False, self.my_pid)
             modules = win32process.EnumProcessModules(processHandle)
             processHandle.close()
             base_addr = modules[0]
@@ -143,44 +170,14 @@ class bot:
             char_name = self.process.get_pointer(self.baseAddress, offsets=[0x20])
             self.char_name = self.process.readString(char_name, 30)
             self.window_name = f"Realera Client ({self.char_name})"
-            self.hwnd = win32gui.FindWindow(None, self.window_name) 
+            self.hwnd = win32gui.FindWindow(None, self.window_name)
+            self.waypoints = []
         except Exception as e:
             print(e)
             sg.theme('Reddit')
             sg.popup('Por favor inicie o jogo antes de abrir o RoseTibiaBot - Realera', background_color='#272424',
             title='Erro ao Iniciar', button_color='#fd6468', text_color='white')
             sys.exit()
-        
-
-    def keystroke(self, key=""):
-        if key != "":
-            self.key = key
-        if self.key == 'F1':
-            self.key = 0x70
-        elif self.key == 'F2':
-            self.key = 0x71
-        elif self.key == 'F3':
-            self.key = 0x72
-        elif self.key == 'F4':
-            self.key = 0x73
-        elif self.key == 'F5':
-            self.key = 0x74
-        elif self.key == 'F6':
-            self.key = 0x75
-        elif self.key == 'F7':
-            self.key = 0x76
-        elif self.key == 'F8':
-            self.key = 0x77
-        elif self.key == 'F9':
-            self.key = 0x78
-        elif self.key == 'F10':
-            self.key = 0x79
-        elif self.key == 'F11':
-            self.key = 0x7A
-        elif self.key == 'F12':
-            self.key = 0x7B
-        win32api.SendMessage(self.hwnd, win32con.WM_KEYDOWN, self.key, 0)
-        win32api.SendMessage(self.hwnd, win32con.WM_KEYUP, self.key, 0)
 
     def bot_main(self):
         sg.theme('Reddit')
@@ -218,7 +215,7 @@ class bot:
             if eventos == "Healing":
                 self.healing()
             if eventos == "Cavebot":
-                sg.popup("In Development...")
+                self.cavebot()
             if eventos == "Targeting":
                 sg.popup("in Development...")
             if eventos == "Mana Trainer":
@@ -230,7 +227,7 @@ class bot:
             [sg.Text('Waypoints',font=('Helvetica, 14'), justification='c', background_color='#272424', text_color='white')]
         ]
         layout_buttons = [
-            [sg.Button('Gravar', button_color='#fd6468'), sg.Button('Parar Gravação', button_color='#fd6468'), 
+            [sg.Button('Gravar Waypoint', button_color='#fd6468'), 
             sg.Button('Iniciar', button_color='#fd6468'), sg.Button('Pausar', button_color='#fd6468')]
         ]
         layout_way = [
@@ -250,10 +247,17 @@ class bot:
             eventos, valores = janela.read(timeout=100)
             if eventos ==  sg.WINDOW_CLOSED:
                 break
-            if eventos == 'Gravar':
-                pass
-            if eventos == 'Parar Gravação':
-                pass
+            if eventos == 'Gravar Waypoint':
+                pos_x = self.process.get_pointer(0x00A7403C)
+                pos_x = self.process.read(pos_x)
+                pos_y = self.process.get_pointer(0x00A74040)
+                pos_y = self.process.read(pos_y)
+                pos_z = self.process.get_pointer(0x00A74044)
+                pos_z = self.process.read(pos_z)
+                self.waypoints.append(pos_x)
+                self.waypoints.append(pos_y)
+                self.waypoints.append(pos_z)
+                print(self.waypoints)
             if eventos == 'Iniciar':
                 pass
             if eventos == 'Pausar':
@@ -304,7 +308,7 @@ class bot:
                         sg.popup("Healing já em execução, primeiro pause para poder alterar")
                     else:    
                         self.healing_flag = 1
-                        self.heal = multiprocessing.Process(target=healer, args=(self.baseAddress, valores,))
+                        self.heal = multiprocessing.Process(target=healer, args=(self.baseAddress, valores, self.my_pid, self.hwnd,))
                         self.heal.start()
                 except Exception as e:
                     print(e)
@@ -351,15 +355,47 @@ class bot:
                         sg.popup("Mana Training já em execução, primeiro pause para poder alterar")
                     else:
                         self.mt_flag = 1
-                        self.mt = multiprocessing.Process(target=mana_trainer, args=(self.baseAddress, valores,))
+                        self.mt = multiprocessing.Process(target=mana_trainer, args=(self.baseAddress, valores, self.my_pid, self.hwnd,))
                         self.mt.start()
                 except Exception as e:
                     print(e)
                     continue
 
+
+def list_window_names():
+    def winEnumHandler(hwnd, ctx):
+        if win32gui.IsWindowVisible(hwnd):
+            ##print(hex(hwnd), '"' + win32gui.GetWindowText(hwnd) + '"')
+            if win32gui.GetWindowText(hwnd).find("Realera Client") != -1:
+                win_name = win32gui.GetWindowText(hwnd)
+                ctx.append(win_name)
+    wins =[]
+    win32gui.EnumWindows(winEnumHandler, wins)
+    sg.theme('Reddit')
+    layout_buttons = [
+        [sg.Button('Iniciar', button_color='#fd6468')]
+    ]
+    layout = [
+        [sg.Listbox(wins, font=('Helvetica, 12'), key='win_char', background_color='#272424', text_color='white', size=(300, 20))],
+        [sg.Canvas(background_color='#272424', size=(400, 20), pad=None)],
+        [sg.Column(layout=layout_buttons, justification='c', element_justification='c', background_color='#272424')]
+    ]
+    janela = sg.Window(f'RoseTibiaBot - Realera', layout, size=(300,470),
+    background_color='#272424', finalize=True, grab_anywhere=True, resizable=False)
+    while True:
+        eventos, valores = janela.read(timeout=100)
+        if eventos ==  sg.WINDOW_CLOSED:
+            sys.exit()
+        if eventos == 'Iniciar':
+            window_name = valores['win_char'][0]
+            janela.close()
+            break
+    return window_name
+
 if __name__ == "__main__":
     multiprocessing.freeze_support()
     sg.popup('Bem vindo ao RoseTibiaBot - Realera', background_color='#272424',
             title='Bem vindo', button_color='#fd6468', text_color='white')
-    start = bot()
+    window_name = list_window_names()
+    start = bot(window_name)
     start.bot_main()
