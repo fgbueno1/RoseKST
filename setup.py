@@ -1,7 +1,7 @@
 import sys
 from cx_Freeze import setup, Executable
 
-build_exe_options = {"packages": ["os"], "includes": ["ctypes","win32process","win32con","ReadWriteMemory","tkinter","sys","pyautogui","win32api","win32con","pynput","win32api","time"]}
+build_exe_options = {"packages": ["os"], "includes": ["ctypes","win32process","win32con","ReadWriteMemory","tkinter","sys","pyautogui","win32api","win32con","win32gui","time"]}
 
 base = "Win32GUI"
 

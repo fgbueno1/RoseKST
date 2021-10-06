@@ -5,7 +5,7 @@ import win32api, win32process
 import win32gui, win32ui, win32con
 import sys
 import time
-from multiprocessing import Process
+import multiprocessing
 
 def healer(baseAddress, valores):
     keystroke = bot()
@@ -83,6 +83,44 @@ def mana_trainer(baseAddress, valores):
                 continue
         time.sleep(int(valores['sleep']))
 
+def record(baseAddress):
+    rwm = ReadWriteMemory()
+    process = rwm.get_process_by_name("RealeraDX9.exe")
+    process.open()
+    ## POS X = 0x00A7403C
+    '''pos_x = self.process.get_pointer(0x00A7403C)
+    pos_x = self.process.read(pos_x)
+    print(pos_x)
+    ## POS Y = 0x00A74040
+    pos_y = self.process.get_pointer(0x00A74040)
+    pos_y = self.process.read(pos_y)
+    print(pos_y)
+    ## POS Z = 0x00A74044
+    pos_z = self.process.get_pointer(0x00A74044)
+    pos_z = self.process.read(pos_z)
+    print(pos_z)
+    wanna_walk = [32369, 32234, 7]
+    if pos_x > wanna_walk[0]:
+        walk = pos_x - wanna_walk[0]
+        self.key = Key.left
+        for i in range(walk):
+            self.keystroke()  
+    elif pos_x < wanna_walk[0]:
+        walk = wanna_walk[0] - pos_x
+        self.key = Key.right
+        for i in range(walk):
+            self.keystroke()
+    if pos_y > wanna_walk[1]:
+        walk = pos_y - wanna_walk[1]
+        self.key = Key.up
+        for i in range(walk):
+            self.keystroke()  
+    elif pos_y < wanna_walk[1]:
+        walk = wanna_walk[1] - pos_y
+        self.key = Key.down
+        for i in range(walk):
+            self.keystroke() '''
+
 class bot:
     def __init__(self):
         self.game = "RealeraDX9.exe"
@@ -105,47 +143,15 @@ class bot:
             char_name = self.process.get_pointer(self.baseAddress, offsets=[0x20])
             self.char_name = self.process.readString(char_name, 30)
             self.window_name = f"Realera Client ({self.char_name})"
-            self.hwnd = win32gui.FindWindow(None, self.window_name)
-            ## POS X = 0x00A7403C
-            '''pos_x = self.process.get_pointer(0x00A7403C)
-            pos_x = self.process.read(pos_x)
-            print(pos_x)
-            ## POS Y = 0x00A74040
-            pos_y = self.process.get_pointer(0x00A74040)
-            pos_y = self.process.read(pos_y)
-            print(pos_y)
-            ## POS Z = 0x00A74044
-            pos_z = self.process.get_pointer(0x00A74044)
-            pos_z = self.process.read(pos_z)
-            print(pos_z)
-            wanna_walk = [32369, 32234, 7]
-            if pos_x > wanna_walk[0]:
-                walk = pos_x - wanna_walk[0]
-                self.key = Key.left
-                for i in range(walk):
-                    self.keystroke()  
-            elif pos_x < wanna_walk[0]:
-                walk = wanna_walk[0] - pos_x
-                self.key = Key.right
-                for i in range(walk):
-                    self.keystroke()
-            if pos_y > wanna_walk[1]:
-                walk = pos_y - wanna_walk[1]
-                self.key = Key.up
-                for i in range(walk):
-                    self.keystroke()  
-            elif pos_y < wanna_walk[1]:
-                walk = wanna_walk[1] - pos_y
-                self.key = Key.down
-                for i in range(walk):
-                    self.keystroke() ''' 
-
-        except:
+            self.hwnd = win32gui.FindWindow(None, self.window_name) 
+        except Exception as e:
+            print(e)
             sg.theme('Reddit')
             sg.popup('Por favor inicie o jogo antes de abrir o RoseTibiaBot - Realera', background_color='#272424',
             title='Erro ao Iniciar', button_color='#fd6468', text_color='white')
             sys.exit()
-    
+        
+
     def keystroke(self, key=""):
         if key != "":
             self.key = key
@@ -183,7 +189,8 @@ class bot:
         ]
         layout_buttons = [
             [sg.Button('Healing', button_color='#fd6468'), sg.Button('Cavebot', button_color='#fd6468'),
-            sg.Button('Mana Trainer', button_color='#fd6468'), sg.Button('Exit', button_color='#fd6468')]
+            sg.Button('Targeting', button_color='#fd6468'), sg.Button('Mana Trainer', button_color='#fd6468'),
+            sg.Button('Exit', button_color='#fd6468')]
         ]
         layout = [
             [sg.Canvas(background_color='#272424', size=(400, 10), pad=None)],
@@ -191,8 +198,10 @@ class bot:
             [sg.Canvas(background_color='#272424', size=(400, 3), pad=None)],
             [sg.Column(layout=layout_buttons, justification='c', element_justification='c', background_color='#272424')]
         ]
-        janela = sg.Window(f'RoseTibiaBot - Realera -- logged as {self.char_name}', layout, size=(300,100),
+        janela = sg.Window(f'RoseTibiaBot - Realera -- logged as {self.char_name}', layout, size=(500,100),
         background_color='#272424', finalize=True, grab_anywhere=True, resizable=False)
+        self.healing_flag = 0
+        self.mt_flag = 0
         while True:
             eventos, valores = janela.read(timeout=100)
             if eventos == sg.WINDOW_CLOSED or eventos == "Exit":
@@ -210,31 +219,45 @@ class bot:
                 self.healing()
             if eventos == "Cavebot":
                 sg.popup("In Development...")
+            if eventos == "Targeting":
+                sg.popup("in Development...")
             if eventos == "Mana Trainer":
                 self.mana_training()
 
     def cavebot(self):
         sg.theme('Reddit')
-        layout_way = [
+        layout_title = [
             [sg.Text('Waypoints',font=('Helvetica, 14'), justification='c', background_color='#272424', text_color='white')]
         ]
         layout_buttons = [
-            [sg.Button('Iniciar', button_color='#fd6468'), sg.Button('Pausar', button_color='#fd6468')]
+            [sg.Button('Gravar', button_color='#fd6468'), sg.Button('Parar Gravação', button_color='#fd6468'), 
+            sg.Button('Iniciar', button_color='#fd6468'), sg.Button('Pausar', button_color='#fd6468')]
+        ]
+        layout_way = [
+            [sg.Text(self.waypoints, font=('Helvetica, 10'), justification='c', background_color='#272424', text_color='white')]
         ]
         layout = [
             [sg.Canvas(background_color='#272424', size=(400, 10), pad=None)],
-            [sg.Column(layout=layout_way, justification='c', element_justification='c', background_color='#272424')],
+            [sg.Column(layout=layout_title, justification='c', element_justification='c', background_color='#272424')],
             [sg.Canvas(background_color='#272424', size=(400, 3), pad=None)],
+            [sg.Column(layout=layout_way, justification='c', element_justification='c', background_color='#272424')],
             [sg.Canvas(background_color='#272424', size=(400, 20), pad=None)],
             [sg.Column(layout=layout_buttons, justification='c', element_justification='c', background_color='#272424')]
         ]
         janela = sg.Window(f'RoseTibiaBot - Realera -- logged as {self.char_name}', layout, size=(400,300),
         background_color='#272424', finalize=True, grab_anywhere=True, resizable=False)
-        init = 0
         while True:
             eventos, valores = janela.read(timeout=100)
             if eventos ==  sg.WINDOW_CLOSED:
                 break
+            if eventos == 'Gravar':
+                pass
+            if eventos == 'Parar Gravação':
+                pass
+            if eventos == 'Iniciar':
+                pass
+            if eventos == 'Pausar':
+                pass
             
     def healing(self):
         sg.theme('Reddit')
@@ -264,7 +287,6 @@ class bot:
         ]
         janela = sg.Window(f'RoseTibiaBot - Realera -- logged as {self.char_name}', layout, size=(400,250),
         background_color='#272424', finalize=True, grab_anywhere=True, resizable=False)
-        self.healing = 0
         while True:
             eventos, valores = janela.read(timeout=100)
             if eventos ==  sg.WINDOW_CLOSED:
@@ -272,17 +294,17 @@ class bot:
             if eventos == 'Pausar':
                 try:
                     self.heal.terminate()
-                    self.healing = 0
+                    self.healing_flag = 0
                 except Exception as e:
                     print(e)
                     continue
             if eventos == "Iniciar":
                 try:
-                    if self.healing == 1:
+                    if self.healing_flag == 1:
                         sg.popup("Healing já em execução, primeiro pause para poder alterar")
                     else:    
-                        self.healing = 1
-                        self.heal = Process(target=healer, args=(self.baseAddress, valores,))
+                        self.healing_flag = 1
+                        self.heal = multiprocessing.Process(target=healer, args=(self.baseAddress, valores,))
                         self.heal.start()
                 except Exception as e:
                     print(e)
@@ -312,30 +334,32 @@ class bot:
         ]
         janela = sg.Window(f'RoseTibiaBot - Realera -- logged as {self.char_name}', layout, size=(400,250),
         background_color='#272424', finalize=True, grab_anywhere=True, resizable=False)
-        self.manat = 0
         while True:
             eventos, valores = janela.read(timeout=100)
             if eventos ==  sg.WINDOW_CLOSED:
                 break
             if eventos == 'Pausar':
                 try:
-                    self.manat = 0
+                    self.mt_flag = 0
                     self.mt.terminate()
                 except Exception as e:
                     print(e)
                     continue
             if eventos == "Iniciar":
                 try:
-                    if self.manat == 1:
-                        sg.popup("Mata Training já em execução, primeiro pause para poder alterar")
+                    if self.mt_flag == 1:
+                        sg.popup("Mana Training já em execução, primeiro pause para poder alterar")
                     else:
-                        self.manat = 1
-                        self.mt = Process(target=mana_trainer, args=(self.baseAddress, valores,))
+                        self.mt_flag = 1
+                        self.mt = multiprocessing.Process(target=mana_trainer, args=(self.baseAddress, valores,))
                         self.mt.start()
                 except Exception as e:
                     print(e)
                     continue
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
+    sg.popup('Bem vindo ao RoseTibiaBot - Realera', background_color='#272424',
+            title='Bem vindo', button_color='#fd6468', text_color='white')
     start = bot()
     start.bot_main()
