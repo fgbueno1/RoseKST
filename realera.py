@@ -108,53 +108,85 @@ def mana_trainer(baseAddress, valores, pid, hwnd):
                 continue
         time.sleep(int(valores['sleep']))
 
-def record(baseAddress):
+def walker(waypoints, pid, hwnd, address):
     rwm = ReadWriteMemory()
-    process = rwm.get_process_by_name("RealeraDX9.exe")
+    process = rwm.get_process_by_id(pid)
     process.open()
-    ## POS X = 0x00A7403C
-    '''pos_x = self.process.get_pointer(0x00A7403C)
-    pos_x = self.process.read(pos_x)
-    print(pos_x)
-    ## POS Y = 0x00A74040
-    pos_y = self.process.get_pointer(0x00A74040)
-    pos_y = self.process.read(pos_y)
-    print(pos_y)
-    ## POS Z = 0x00A74044
-    pos_z = self.process.get_pointer(0x00A74044)
-    pos_z = self.process.read(pos_z)
-    print(pos_z)
-    wanna_walk = [32369, 32234, 7]
-    if pos_x > wanna_walk[0]:
-        walk = pos_x - wanna_walk[0]
-        self.key = Key.left
-        for i in range(walk):
-            self.keystroke()  
-    elif pos_x < wanna_walk[0]:
-        walk = wanna_walk[0] - pos_x
-        self.key = Key.right
-        for i in range(walk):
-            self.keystroke()
-    if pos_y > wanna_walk[1]:
-        walk = pos_y - wanna_walk[1]
-        self.key = Key.up
-        for i in range(walk):
-            self.keystroke()  
-    elif pos_y < wanna_walk[1]:
-        walk = wanna_walk[1] - pos_y
-        self.key = Key.down
-        for i in range(walk):
-            self.keystroke() '''
-
+    rect = win32gui.GetWindowRect(hwnd)
+    x1 = rect[0]
+    y1 = rect[1]
+    print(x1,y1)
+    sg.Popup("Clique no centro do seu personagem")
+    time.sleep(2)
+    while True:
+        a = win32api.GetKeyState(0x01)
+        if a < 0:
+          x, y = win32api.GetCursorPos()
+          break
+        time.sleep(0.01)
+    x = x - x1
+    y = y + y1
+    x = x - 8
+    y = y - 15
+    while True:
+        for k, v in waypoints.items():
+            wx = v[0]
+            wy = v[1]
+            wz = v[2]
+            h = process.get_pointer(address, offsets=[0x0,0x30])
+            h = process.read(h)
+            v = process.get_pointer(address, offsets=[0x0,0x34])
+            v = process.read(v)
+            sqm_h = int(h) / 15
+            sqm_v = int(v) / 11
+            ## POS X = 0x00A7403C
+            pos_x = process.get_pointer(0x00A7403C)
+            pos_x = process.read(pos_x)
+            ## POS Y = 0x00A74040
+            pos_y = process.get_pointer(0x00A74040)
+            pos_y = process.read(pos_y)
+            ## POS Z = 0x00A74044
+            pos_z = process.get_pointer(0x00A74044)
+            pos_z = process.read(pos_z)
+            while pos_x != wx or pos_y != wy or pos_z != wz:
+                ## POS X = 0x00A7403C
+                pos_x = process.get_pointer(0x00A7403C)
+                pos_x = process.read(pos_x)
+                ## POS Y = 0x00A74040
+                pos_y = process.get_pointer(0x00A74040)
+                pos_y = process.read(pos_y)
+                ## POS Z = 0x00A74044
+                pos_z = process.get_pointer(0x00A74044)
+                pos_z = process.read(pos_z)
+                if int(pos_x) > int(wx):
+                    walk = int(pos_x) - int(wx)
+                    x_walk = walk * sqm_h
+                    #x_walk = x_walk * (-1)
+                    xt = int(x - x_walk)
+                elif int(pos_x) <= int(wx):
+                    walk = int(wx) - int(pos_x)
+                    x_walk = walk * sqm_h
+                    xt = int(x + x_walk)
+                if int(pos_y) > int(wy):
+                    walk = int(pos_y) - int(wy) 
+                    y_walk = walk * sqm_v
+                    #y_walk = y_walk * (-1)
+                    yt = int(y - y_walk)
+                elif int(pos_y) <= int(wy):
+                    walk = int(wy) - int(pos_y)
+                    y_walk = walk * sqm_v
+                    yt = int(y + y_walk)
+                lParam = win32api.MAKELONG(xt, yt)
+                win32gui.SendMessage(hwnd, win32con.WM_MOUSEMOVE, 0, lParam)
+                win32gui.PostMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, lParam)
+                win32gui.PostMessage(hwnd, win32con.WM_LBUTTONUP, 0, lParam)
+                time.sleep(0.01)
 
 class bot:
     def __init__(self, win_name):
         self.game = "RealeraDX9.exe"
         self.rwm = ReadWriteMemory()
         try:
-            #self.char_name_got = "Rose Knight"
-            #self.process = self.rwm.get_process_by_id(self.game)
-            #self.process.open()
             self.window_name_got = win_name
             self.hwnd = win32gui.FindWindow(None, self.window_name_got)
             thread_id, self.my_pid = win32process.GetWindowThreadProcessId(self.hwnd)
@@ -170,7 +202,8 @@ class bot:
             self.char_name = self.process.readString(char_name, 30)
             self.window_name = f"Realera Client ({self.char_name})"
             self.hwnd = win32gui.FindWindow(None, self.window_name)
-            self.waypoints = []
+            self.win_addr = base_addr + 0x00493FF8
+            self.waypoints = {}
         except Exception as e:
             print(e)
             sg.theme('Reddit')
@@ -198,6 +231,9 @@ class bot:
         background_color='#272424', finalize=True, grab_anywhere=True, resizable=False)
         self.healing_flag = 0
         self.mt_flag = 0
+        self.cave_flag = 0
+        self.way_flag = 1
+        self.targeting_flag = 0
         while True:
             eventos, valores = janela.read(timeout=100)
             if eventos == sg.WINDOW_CLOSED or eventos == "Exit":
@@ -207,6 +243,10 @@ class bot:
                     pass
                 try:
                     self.mt.terminate()
+                except:
+                    pass
+                try:
+                    self.cave.terminate()
                 except:
                     pass
                 janela.close()
@@ -226,7 +266,7 @@ class bot:
             [sg.Text('Waypoints',font=('Helvetica, 14'), justification='c', background_color='#272424', text_color='white')]
         ]
         layout_buttons = [
-            [sg.Button('Gravar Waypoint', button_color='#fd6468'), 
+            [sg.Button('Gravar Waypoint', button_color='#fd6468'), sg.Button('Resetar Waypoints', button_color='#fd6468'), 
             sg.Button('Iniciar', button_color='#fd6468'), sg.Button('Pausar', button_color='#fd6468')]
         ]
         layout_way = [
@@ -247,20 +287,39 @@ class bot:
             if eventos ==  sg.WINDOW_CLOSED:
                 break
             if eventos == 'Gravar Waypoint':
+                ways = []
                 pos_x = self.process.get_pointer(0x00A7403C)
                 pos_x = self.process.read(pos_x)
                 pos_y = self.process.get_pointer(0x00A74040)
                 pos_y = self.process.read(pos_y)
                 pos_z = self.process.get_pointer(0x00A74044)
                 pos_z = self.process.read(pos_z)
-                self.waypoints.append(pos_x)
-                self.waypoints.append(pos_y)
-                self.waypoints.append(pos_z)
+                ways.append(pos_x)
+                ways.append(pos_y)
+                ways.append(pos_z)
+                self.waypoints["pos"+str(self.way_flag)] = ways
+                self.way_flag = self.way_flag + 1
                 print(self.waypoints)
+            if eventos == 'Resetar Waypoints':
+                self.waypoints = {}
             if eventos == 'Iniciar':
-                pass
+                try:
+                    if self.cave_flag == 1:
+                        sg.popup("Cavebot já em execução, primeiro pause para poder alterar")
+                    else:    
+                        self.cave_flag = 1
+                        self.cave = multiprocessing.Process(target=walker, args=(self.waypoints, self.my_pid, self.hwnd, self.win_addr,))
+                        self.cave.start()
+                except Exception as e:
+                    print(e)
+                    continue
             if eventos == 'Pausar':
-                pass
+                try:
+                    self.cave.terminate()
+                    self.cave_flag = 0
+                except Exception as e:
+                    print(e)
+                    continue
             
     def healing(self):
         sg.theme('Reddit')
