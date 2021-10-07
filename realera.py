@@ -1,6 +1,5 @@
 from ReadWriteMemory import ReadWriteMemory
 from PySimpleGUI import PySimpleGUI as sg
-import psutil
 import win32api, win32process
 import win32gui, win32ui, win32con
 import sys
