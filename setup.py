@@ -10,5 +10,5 @@ setup(
         version = "1.0",
         description = "Autobuff bot",
         options = {"build_exe": build_exe_options},
-        executables = [Executable("realera.py", base=base)]
+        executables = [Executable("ks.py", base=base)]
 )
