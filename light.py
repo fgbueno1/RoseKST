@@ -2,7 +2,7 @@ from ReadWriteMemory import ReadWriteMemory
 import time
 
 base_address = '0x00003C18'
-light_address = '0x14579A6C'
+light_address = '0x21657BA4'
 
 def light():
     rwm = ReadWriteMemory()
